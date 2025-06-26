@@ -46,6 +46,8 @@ interface AnalysisResult {
   top_5: Array<[string, string, string, string, string, string, string]>;
 }
 
+const FINNHUB_API_KEY = "d1epc69r01qghj42aj4gd1epc69r01qghj42aj50";
+
 // Black-Scholes and Data Functions
 function d1(S: number, K: number, T: number, r: number, sigma: number, q: number = 0.0): number {
   if (T <= 0 || sigma <= 0) return S > K ? Infinity : -Infinity;
@@ -94,64 +96,64 @@ function erf(x: number): number {
   return sign * y;
 }
 
-// Get options data from Yahoo Finance API
-async function getOptionsData(ticker: string, expiration: string): Promise<{ calls: OptionData[], puts: OptionData[] }> {
+// Get options data (calls and puts) for a specific expiration from Finnhub
+async function getOptionsData(
+  ticker: string,
+  expiration: string,
+  underlyingPrice: number
+): Promise<{ calls: OptionData[]; puts: OptionData[] }> {
   try {
-    // Using Yahoo Finance API
-    const response = await fetch(`https://query2.finance.yahoo.com/v7/finance/options/${ticker}?date=${expiration}`);
+    const response = await fetch(
+      `https://finnhub.io/api/v1/stock/option-chain?symbol=${ticker}&token=${FINNHUB_API_KEY}`
+    );
     const data = await response.json();
-    
-    if (!data.optionChain?.result?.[0]?.options?.[0]) {
+    if (!data.data || !Array.isArray(data.data)) {
+      console.error("Finnhub API response missing expected fields for option chain:", data);
       return { calls: [], puts: [] };
     }
-
-    const options = data.optionChain.result[0].options[0];
+    // Find the object with the matching expirationDate
+    const expObj = data.data.find((item: any) => item.expirationDate === expiration);
+    if (!expObj || typeof expObj.options !== "object") {
+      console.error("No options found for expiration:", expiration, expObj);
+      return { calls: [], puts: [] };
+    }
     const calls: OptionData[] = [];
     const puts: OptionData[] = [];
-
-    // Process calls
-    if (options.calls) {
-      options.calls.forEach((call: { strike: number; bid: number; ask: number; impliedVolatility: number; volume: number; openInterest: number }) => {
-        if (call.impliedVolatility > 0.01 && call.bid > 0 && 
-            ((call.ask - call.bid) / call.ask < 0.6) &&
-            (call.volume > 0 || call.openInterest > 0)) {
-          calls.push({
-            strike: call.strike,
-            bid: call.bid,
-            ask: call.ask,
-            impliedVolatility: call.impliedVolatility,
-            volume: call.volume,
-            openInterest: call.openInterest,
-            expiration,
-            optionType: 'call'
-          });
-        }
-      });
+    // Process CALL options
+    if (Array.isArray(expObj.options.CALL)) {
+      for (const contract of expObj.options.CALL) {
+        if (!contract.strike) continue;
+        calls.push({
+          strike: contract.strike,
+          bid: contract.bid || 0,
+          ask: contract.ask || 0,
+          impliedVolatility: contract.impliedVolatility || 0,
+          volume: contract.volume || 0,
+          openInterest: contract.openInterest || 0,
+          expiration: expiration,
+          optionType: "call",
+        });
+      }
     }
-
-    // Process puts
-    if (options.puts) {
-      options.puts.forEach((put: { strike: number; bid: number; ask: number; impliedVolatility: number; volume: number; openInterest: number }) => {
-        if (put.impliedVolatility > 0.01 && put.bid > 0 && 
-            ((put.ask - put.bid) / put.ask < 0.6) &&
-            (put.volume > 0 || put.openInterest > 0)) {
-          puts.push({
-            strike: put.strike,
-            bid: put.bid,
-            ask: put.ask,
-            impliedVolatility: put.impliedVolatility,
-            volume: put.volume,
-            openInterest: put.openInterest,
-            expiration,
-            optionType: 'put'
-          });
-        }
-      });
+    // Process PUT options
+    if (Array.isArray(expObj.options.PUT)) {
+      for (const contract of expObj.options.PUT) {
+        if (!contract.strike) continue;
+        puts.push({
+          strike: contract.strike,
+          bid: contract.bid || 0,
+          ask: contract.ask || 0,
+          impliedVolatility: contract.impliedVolatility || 0,
+          volume: contract.volume || 0,
+          openInterest: contract.openInterest || 0,
+          expiration: expiration,
+          optionType: "put",
+        });
+      }
     }
-
     return { calls, puts };
   } catch (error) {
-    console.error('Error fetching options data:', error);
+    console.error("Error fetching options data from Finnhub:", error);
     return { calls: [], puts: [] };
   }
 }
@@ -168,16 +170,19 @@ async function getStockPrice(ticker: string): Promise<number> {
   }
 }
 
-// Get available expiration dates
+// Get available expiration dates from Finnhub
 async function getExpirationDates(ticker: string): Promise<string[]> {
   try {
-    const response = await fetch(`https://query2.finance.yahoo.com/v7/finance/options/${ticker}`);
+    const response = await fetch(`https://finnhub.io/api/v1/stock/option-chain?symbol=${ticker}&token=${FINNHUB_API_KEY}`);
     const data = await response.json();
-    return data.optionChain.result[0].expirationDates.map((date: number) => 
-      new Date(date * 1000).toISOString().split('T')[0]
-    );
+    if (!data.data || !Array.isArray(data.data)) {
+      console.error("Finnhub API response missing expected fields:", data);
+      return [];
+    }
+    // Extract all expirationDate values
+    return data.data.map((item: any) => item.expirationDate);
   } catch (error) {
-    console.error('Error fetching expiration dates:', error);
+    console.error('Error fetching expiration dates from Finnhub:', error);
     return [];
   }
 }
@@ -430,7 +435,7 @@ function formatTextReport(results: StrategyCombination[], analysisSummary: strin
     `This ${strategyType} risk reversal strategy involves:\n` +
     `• ${strategyType === 'bullish' ? 'Buying an OTM call and selling an OTM put' : 'Buying an OTM put and selling an OTM call'}\n` +
     `• Net cost: $${topResult.net_cost.toFixed(2)} (credit received)\n` +
-    `• Maximum risk: ${strategyType === 'bullish' ? `$${topResult.max_loss_down?.toFixed(2)} if stock falls below ${topResult.short_put_strike}` : `$${topResult.max_loss_up?.toFixed(2)} if stock rises above ${topResult.short_call_strike}`}\n` +
+    `• Maximum risk: ${strategyType === 'bullish' ? `$${topResult.max_loss_down?.toFixed(2)} if stock falls below ${topResult.short_put_strike}` : `$${topResult.max_loss_up?.toFixed(2)} if stock rises above ${topResult.short_call_strike}` }\n` +
     `• Profit potential: Unlimited ${strategyType === 'bullish' ? 'upside' : 'downside'}\n` +
     `• Breakeven: $${topResult.breakeven?.toFixed(2)}`;
 
@@ -488,7 +493,7 @@ export async function runBullishAnalysis(ticker: string, minDte: number, maxDte:
 
     // Analyze each expiration date
     for (const expiration of filteredDates.slice(0, 5)) { // Limit to first 5 expirations
-      const { calls, puts } = await getOptionsData(ticker, expiration);
+      const { calls, puts } = await getOptionsData(ticker, expiration, stockPrice);
       const combinations = analyzeBullishRiskReversal(calls, puts, stockPrice, expiration);
       allCombinations.push(...combinations);
     }
@@ -533,7 +538,7 @@ export async function runBearishAnalysis(ticker: string, minDte: number, maxDte:
 
     // Analyze each expiration date
     for (const expiration of filteredDates.slice(0, 5)) { // Limit to first 5 expirations
-      const { calls, puts } = await getOptionsData(ticker, expiration);
+      const { calls, puts } = await getOptionsData(ticker, expiration, stockPrice);
       const combinations = analyzeBearishRiskReversal(calls, puts, stockPrice, expiration);
       allCombinations.push(...combinations);
     }
@@ -550,4 +555,4 @@ export async function runBearishAnalysis(ticker: string, minDte: number, maxDte:
       top_5: []
     };
   }
-} 
+}
