@@ -99,8 +99,7 @@ function erf(x: number): number {
 // Get options data (calls and puts) for a specific expiration from Finnhub
 async function getOptionsData(
   ticker: string,
-  expiration: string,
-  underlyingPrice: number
+  expiration: string
 ): Promise<{ calls: OptionData[]; puts: OptionData[] }> {
   try {
     const response = await fetch(
@@ -112,7 +111,7 @@ async function getOptionsData(
       return { calls: [], puts: [] };
     }
     // Find the object with the matching expirationDate
-    const expObj = data.data.find((item: any) => item.expirationDate === expiration);
+    const expObj = data.data.find((item: { expirationDate: string; options: { CALL?: unknown[]; PUT?: unknown[] } }) => item.expirationDate === expiration);
     if (!expObj || typeof expObj.options !== "object") {
       console.error("No options found for expiration:", expiration, expObj);
       return { calls: [], puts: [] };
@@ -121,15 +120,15 @@ async function getOptionsData(
     const puts: OptionData[] = [];
     // Process CALL options
     if (Array.isArray(expObj.options.CALL)) {
-      for (const contract of expObj.options.CALL) {
-        if (!contract.strike) continue;
+      for (const contract of expObj.options.CALL as Record<string, unknown>[]) {
+        if (typeof contract.strike !== 'number') continue;
         calls.push({
-          strike: contract.strike,
-          bid: contract.bid || 0,
-          ask: contract.ask || 0,
-          impliedVolatility: contract.impliedVolatility || 0,
-          volume: contract.volume || 0,
-          openInterest: contract.openInterest || 0,
+          strike: contract.strike as number,
+          bid: (contract.bid as number) || 0,
+          ask: (contract.ask as number) || 0,
+          impliedVolatility: (contract.impliedVolatility as number) || 0,
+          volume: (contract.volume as number) || 0,
+          openInterest: (contract.openInterest as number) || 0,
           expiration: expiration,
           optionType: "call",
         });
@@ -137,15 +136,15 @@ async function getOptionsData(
     }
     // Process PUT options
     if (Array.isArray(expObj.options.PUT)) {
-      for (const contract of expObj.options.PUT) {
-        if (!contract.strike) continue;
+      for (const contract of expObj.options.PUT as Record<string, unknown>[]) {
+        if (typeof contract.strike !== 'number') continue;
         puts.push({
-          strike: contract.strike,
-          bid: contract.bid || 0,
-          ask: contract.ask || 0,
-          impliedVolatility: contract.impliedVolatility || 0,
-          volume: contract.volume || 0,
-          openInterest: contract.openInterest || 0,
+          strike: contract.strike as number,
+          bid: (contract.bid as number) || 0,
+          ask: (contract.ask as number) || 0,
+          impliedVolatility: (contract.impliedVolatility as number) || 0,
+          volume: (contract.volume as number) || 0,
+          openInterest: (contract.openInterest as number) || 0,
           expiration: expiration,
           optionType: "put",
         });
@@ -493,7 +492,7 @@ export async function runBullishAnalysis(ticker: string, minDte: number, maxDte:
 
     // Analyze each expiration date
     for (const expiration of filteredDates.slice(0, 5)) { // Limit to first 5 expirations
-      const { calls, puts } = await getOptionsData(ticker, expiration, stockPrice);
+      const { calls, puts } = await getOptionsData(ticker, expiration);
       const combinations = analyzeBullishRiskReversal(calls, puts, stockPrice, expiration);
       allCombinations.push(...combinations);
     }
@@ -538,7 +537,7 @@ export async function runBearishAnalysis(ticker: string, minDte: number, maxDte:
 
     // Analyze each expiration date
     for (const expiration of filteredDates.slice(0, 5)) { // Limit to first 5 expirations
-      const { calls, puts } = await getOptionsData(ticker, expiration, stockPrice);
+      const { calls, puts } = await getOptionsData(ticker, expiration);
       const combinations = analyzeBearishRiskReversal(calls, puts, stockPrice, expiration);
       allCombinations.push(...combinations);
     }
