@@ -181,13 +181,12 @@ async function getStockPrice(ticker: string): Promise<number> {
 async function getExpirationDates(ticker: string): Promise<string[]> {
   try {
     const response = await fetch(`https://finnhub.io/api/v1/stock/option-chain?symbol=${ticker}&token=${FINNHUB_API_KEY}`);
-    const data = await response.json();
+    const data: { data: FinnhubExpirationDate[] } = await response.json();
     if (!data.data || !Array.isArray(data.data)) {
       console.error("Finnhub API response missing expected fields:", data);
       return [];
     }
-    // Extract all expirationDate values
-    return (data.data as FinnhubExpirationDate[]).map(item => item.expirationDate);
+    return data.data.map(item => item.expirationDate);
   } catch (error) {
     console.error('Error fetching expiration dates from Finnhub:', error);
     return [];
