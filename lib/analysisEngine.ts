@@ -187,7 +187,7 @@ async function getExpirationDates(ticker: string): Promise<string[]> {
       return [];
     }
     // Extract all expirationDate values
-    return data.data.map((item: FinnhubExpirationDate) => item.expirationDate);
+    return (data.data as FinnhubExpirationDate[]).map(item => item.expirationDate);
   } catch (error) {
     console.error('Error fetching expiration dates from Finnhub:', error);
     return [];
