@@ -46,6 +46,14 @@ interface AnalysisResult {
   top_5: Array<[string, string, string, string, string, string, string]>;
 }
 
+interface FinnhubExpirationDate {
+  expirationDate: string;
+  options: {
+    CALL?: unknown[];
+    PUT?: unknown[];
+  };
+}
+
 const FINNHUB_API_KEY = "d1epc69r01qghj42aj4gd1epc69r01qghj42aj50";
 
 // Black-Scholes and Data Functions
@@ -179,7 +187,7 @@ async function getExpirationDates(ticker: string): Promise<string[]> {
       return [];
     }
     // Extract all expirationDate values
-    return data.data.map((item: any) => item.expirationDate);
+    return data.data.map((item: FinnhubExpirationDate) => item.expirationDate);
   } catch (error) {
     console.error('Error fetching expiration dates from Finnhub:', error);
     return [];
