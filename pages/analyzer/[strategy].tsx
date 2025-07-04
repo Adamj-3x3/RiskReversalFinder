@@ -7,6 +7,7 @@ import ResultsSummary from "@/components/ResultsSummary";
 import ResultsTable from "@/components/ResultsTable";
 import ProfitLossChart from "@/components/ProfitLossChart";
 import ErrorAlert from "@/components/ErrorAlert";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type AnalysisResult = {
   summary: string;
@@ -52,60 +53,66 @@ export default function AnalyzerPage() {
   };
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-white px-4 py-8 flex flex-col items-center">
-      <h2 className="text-2xl font-bold mb-6 capitalize">{strategy} Analysis</h2>
-      <form
-        className="w-full max-w-md flex flex-col gap-4 mb-8"
-        onSubmit={e => {
-          e.preventDefault();
-          handleAnalyze();
-        }}
-      >
-        <Input
-          placeholder="Ticker (e.g. AAPL)"
-          value={ticker}
-          onChange={e => setTicker(e.target.value.toUpperCase())}
-          required
-        />
-        <div className="flex gap-2">
-          <Input
-            type="number"
-            min={1}
-            value={minDte}
-            onChange={e => setMinDte(Number(e.target.value))}
-            className="w-1/2"
-            placeholder="Min DTE"
-            required
-          />
-          <Input
-            type="number"
-            min={1}
-            value={maxDte}
-            onChange={e => setMaxDte(Number(e.target.value))}
-            className="w-1/2"
-            placeholder="Max DTE"
-            required
-          />
-        </div>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Analyzing..." : "Run Analysis"}
-        </Button>
-      </form>
-      {isLoading && (
-        <div className="w-full max-w-md flex flex-col gap-4">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-48 w-full" />
-        </div>
-      )}
-      {error && <ErrorAlert message={error} />}
-      {result && (
-        <div className="w-full max-w-md flex flex-col gap-6">
-          <ResultsSummary summary={result.summary} />
-          <ResultsTable rows={result.top_5} />
-          <ProfitLossChart data={result.chartData} />
-        </div>
-      )}
+    <main className="min-h-screen bg-zinc-950 text-white px-2 py-6 flex flex-col items-center">
+      <Card className="w-full max-w-md mx-auto p-4 shadow-xl">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold capitalize text-center">{strategy} Analysis</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form
+            className="flex flex-col gap-4 mb-4"
+            onSubmit={e => {
+              e.preventDefault();
+              handleAnalyze();
+            }}
+          >
+            <Input
+              placeholder="Ticker (e.g. AAPL)"
+              value={ticker}
+              onChange={e => setTicker(e.target.value.toUpperCase())}
+              required
+            />
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                min={1}
+                value={minDte}
+                onChange={e => setMinDte(Number(e.target.value))}
+                className="w-1/2"
+                placeholder="Min DTE"
+                required
+              />
+              <Input
+                type="number"
+                min={1}
+                value={maxDte}
+                onChange={e => setMaxDte(Number(e.target.value))}
+                className="w-1/2"
+                placeholder="Max DTE"
+                required
+              />
+            </div>
+            <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg font-semibold">
+              {isLoading ? "Analyzing..." : "Run Analysis"}
+            </Button>
+          </form>
+          {isLoading && (
+            <div className="flex flex-col gap-4">
+              <Skeleton className="h-24 w-full rounded-lg" />
+              <Skeleton className="h-32 w-full rounded-lg" />
+              <Skeleton className="h-48 w-full rounded-lg" />
+            </div>
+          )}
+          {error && <ErrorAlert message={error} />}
+          {result && (
+            <div className="flex flex-col gap-6 mt-4">
+              <ResultsSummary summary={result.summary} />
+              <ResultsTable rows={result.top_5} />
+              <ProfitLossChart data={result.chartData} />
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </main>
   );
 } 
