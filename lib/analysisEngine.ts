@@ -54,7 +54,7 @@ interface FinnhubExpirationDate {
   };
 }
 
-const FINNHUB_API_KEY = "d1epc69r01qghj42aj4gd1epc69r01qghj42aj50";
+const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY as string;
 
 // Black-Scholes and Data Functions
 function d1(S: number, K: number, T: number, r: number, sigma: number, q: number = 0.0): number {
