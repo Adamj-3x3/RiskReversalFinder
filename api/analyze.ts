@@ -1,0 +1,64 @@
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+const FINNHUB_API_KEY = 'd1epc69r01qghj42aj4gd1epc69r01qghj42aj50';
+const FINNHUB_BASE = 'https://finnhub.io/api/v1';
+
+async function fetchOptions(symbol: string) {
+  // Get available expiration dates
+  const expRes = await fetch(`${FINNHUB_BASE}/stock/option-chain?symbol=${symbol}&token=${FINNHUB_API_KEY}`);
+  if (!expRes.ok) throw new Error('Failed to fetch option expirations');
+  const expData = await expRes.json();
+  if (!expData.data || !expData.data.length) throw new Error('No options data found');
+  // Use the first expiration date for demo
+  const expiry = expData.data[0].expirationDate;
+  // Get option chain for that expiry
+  const chainRes = await fetch(`${FINNHUB_BASE}/stock/option-chain?symbol=${symbol}&expiration=${expiry}&token=${FINNHUB_API_KEY}`);
+  if (!chainRes.ok) throw new Error('Failed to fetch option chain');
+  const chainData = await chainRes.json();
+  return { expiry, options: chainData.data };
+}
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Only POST allowed' });
+    return;
+  }
+  try {
+    const { ticker, min_dte, max_dte, strategy } = req.body;
+    if (!ticker || !['bullish', 'bearish'].includes(strategy)) {
+      res.status(400).json({ error: 'Invalid input' });
+      return;
+    }
+    const symbol = ticker.toUpperCase();
+    const { expiry, options } = await fetchOptions(symbol);
+    // Filter and sort options by IV
+    let filtered = options.filter((opt: any) => opt.type === (strategy === 'bullish' ? 'CALL' : 'PUT'));
+    filtered = filtered.filter((opt: any) => opt.impliedVolatility && opt.strike && opt.lastPrice);
+    filtered.sort((a: any, b: any) => b.impliedVolatility - a.impliedVolatility);
+    const top5 = filtered.slice(0, 5);
+    // Prepare top_5 table
+    const top_5 = top5.map((opt: any) => [
+      opt.symbol,
+      String(opt.strike),
+      String(opt.lastPrice),
+      String(opt.impliedVolatility),
+      String(opt.openInterest),
+      String(opt.volume),
+      expiry
+    ]);
+    // Prepare chart data (dummy P&L curve)
+    const strikes = top5.map((opt: any) => Number(opt.strike));
+    const chartData = [];
+    for (let i = 0; i < 20; ++i) {
+      const price = Math.round((Math.min(...strikes) * 0.9 + (Math.max(...strikes) * 1.1 - Math.min(...strikes) * 0.9) * (i / 19)) * 100) / 100;
+      const profit = strategy === 'bullish'
+        ? (price - strikes[0]) * 10
+        : (strikes[0] - price) * 10;
+      chartData.push({ price, profit: Math.round(profit * 100) / 100 });
+    }
+    const summary = `Top ${strategy.charAt(0).toUpperCase() + strategy.slice(1)} trade for ${symbol}: ${top_5[0][0]} (Strike ${top_5[0][1]}, IV ${top_5[0][3]})`;
+    res.status(200).json({ summary, top_5, chartData });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message || 'Internal error' });
+  }
+} 

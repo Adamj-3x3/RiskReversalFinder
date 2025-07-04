@@ -1,8 +1,0 @@
-{
-  "functions": {
-    "api/analyze.py": {
-      "maxDuration": 30,
-      "runtime": "vercel-python@3.0.1"
-    }
-  }
-} 
