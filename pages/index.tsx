@@ -156,10 +156,7 @@ export default function Home() {
             {isLoading ? (
               <LoadingScanner />
             ) : result && result.chartData ? (
-              <ProfitLossChart
-                data={result.chartData}
-                breakeven={result.breakeven || []}
-              />
+              <ProfitLossChart data={result.chartData} />
             ) : (
               <div className="h-64 flex items-center justify-center text-cyan-400/60 font-mono text-lg bg-zinc-950/60 rounded-xl border border-cyan-700/30">
                 {result ? "No chart data available." : "Welcome to the Trader's Cockpit. Enter parameters and run analysis."}
