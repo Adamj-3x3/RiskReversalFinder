@@ -22,20 +22,20 @@ type ApiResponse = {
   error?: string;
 };
 
-async function fetchOptions(symbol: string): Promise<{ expiry: string; options: Option[] } | null> {
+async function fetchOptions(symbol: string): Promise<{ expiry: string; options: Option[]; debug?: any } | null> {
   const expRes = await fetch(`${FINNHUB_BASE}/stock/option-chain?symbol=${symbol}&token=${FINNHUB_API_KEY}`);
   if (!expRes.ok) return null;
   const expData = await expRes.json();
-  if (!expData.data || !expData.data.length) return null;
+  if (!expData.data || !expData.data.length) return { expiry: '', options: [], debug: expData };
   // Use the first expiration date for demo
   const expiryObj = expData.data[0];
   const expiry = expiryObj.expirationDate;
   const options = Array.isArray(expiryObj.options) ? expiryObj.options : [];
-  if (!options.length) return null;
+  if (!options.length) return { expiry, options: [], debug: expiryObj };
   return { expiry, options: options as Option[] };
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse<ApiResponse | { error: string }>) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse<ApiResponse | { error: string; debug?: any }>) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Only POST allowed' });
     return;
@@ -48,8 +48,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     }
     const symbol = ticker.toUpperCase();
     const result = await fetchOptions(symbol);
-    if (!result) {
-      res.status(200).json({ summary: '', top_5: [], chartData: [], error: 'No options data found for this symbol.' });
+    if (!result || !result.options.length) {
+      res.status(200).json({ summary: '', top_5: [], chartData: [], error: 'No options data found for this symbol.', debug: result?.debug });
       return;
     }
     const { expiry, options } = result;
