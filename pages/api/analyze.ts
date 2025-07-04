@@ -27,12 +27,12 @@ async function fetchOptions(symbol: string): Promise<{ expiry: string; options: 
   if (!expRes.ok) return null;
   const expData = await expRes.json();
   if (!expData.data || !expData.data.length) return null;
-  const expiry = expData.data[0].expirationDate;
-  const chainRes = await fetch(`${FINNHUB_BASE}/stock/option-chain?symbol=${symbol}&expiration=${expiry}&token=${FINNHUB_API_KEY}`);
-  if (!chainRes.ok) return null;
-  const chainData = await chainRes.json();
-  if (!chainData.data || !chainData.data.length) return null;
-  return { expiry, options: chainData.data as Option[] };
+  // Use the first expiration date for demo
+  const expiryObj = expData.data[0];
+  const expiry = expiryObj.expirationDate;
+  const options = Array.isArray(expiryObj.options) ? expiryObj.options : [];
+  if (!options.length) return null;
+  return { expiry, options: options as Option[] };
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<ApiResponse | { error: string }>) {
