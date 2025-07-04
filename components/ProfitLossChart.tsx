@@ -9,11 +9,9 @@ interface ChartPoint {
 interface ProfitLossChartProps {
   data: ChartPoint[];
   breakeven: number[];
-  maxProfit: number;
-  maxLoss: number;
 }
 
-export const ProfitLossChart: React.FC<ProfitLossChartProps> = ({ data, breakeven, maxProfit, maxLoss }) => (
+export const ProfitLossChart: React.FC<ProfitLossChartProps> = ({ data, breakeven }) => (
   <div className="w-full h-64 bg-zinc-950/80 rounded-xl border border-cyan-700/40 shadow-inner p-4">
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>

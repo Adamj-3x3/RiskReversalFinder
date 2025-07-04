@@ -95,11 +95,6 @@ export default function Home() {
     }
   };
 
-  const clearResults = () => {
-    setResult(null);
-    setError(null);
-  };
-
   // Dynamic page title
   const pageTitle = ticker
     ? `${ticker.toUpperCase()} // ${strategyType.charAt(0).toUpperCase() + strategyType.slice(1)} Risk Reversal`
@@ -149,7 +144,7 @@ export default function Home() {
           ) : result && result.summary ? (
             <div className="flex gap-6">
               {getMetricWidgets(result.summary).map((w, i) => (
-                <MetricWidget key={i} label={w.label} value={w.value} accent={w.accent as any} />
+                <MetricWidget key={i} label={w.label} value={w.value} accent={w.accent as 'green' | 'blue'} />
               ))}
             </div>
           ) : null}

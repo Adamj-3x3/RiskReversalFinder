@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import Image from 'next/image';
 
 type StrategyType = "bullish" | "bearish";
 
@@ -45,9 +46,13 @@ export const CommandPanel: React.FC<CommandPanelProps> = ({
     <Card className="bg-transparent border-none shadow-none p-0">
       <CardHeader className="p-0 mb-4">
         <CardTitle className="text-slate-50 text-xl font-bold tracking-tight flex items-center gap-3">
-          {companyInfo.logoUrl && (
-            <img src={companyInfo.logoUrl} alt={companyInfo.name} className="w-8 h-8 rounded bg-white/10" />
-          )}
+          <Image
+            src={companyInfo.logoUrl || "/placeholder-logo.png"}
+            alt={companyInfo.name || "Company Logo"}
+            width={40}
+            height={40}
+            className="w-8 h-8 rounded bg-white/10"
+          />
           {companyInfo.name || "Analysis Parameters"}
         </CardTitle>
       </CardHeader>
