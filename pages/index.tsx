@@ -1,5 +1,19 @@
-import { useState } from 'react';
-import Head from 'next/head';
+import React, { useState } from "react";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+
+type StrategyType = "bullish" | "bearish";
 
 interface AnalysisResult {
   summary: string;
@@ -9,45 +23,47 @@ interface AnalysisResult {
 }
 
 export default function Home() {
-  const [ticker, setTicker] = useState('');
+  const [ticker, setTicker] = useState("");
   const [minDte, setMinDte] = useState(30);
   const [maxDte, setMaxDte] = useState(90);
-  const [strategyType, setStrategyType] = useState<'bullish' | 'bearish'>('bullish');
+  const [strategyType, setStrategyType] = useState<StrategyType>("bullish");
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleAnalyze = async () => {
+    setError(null);
+    setResult(null);
+
     if (!ticker.trim()) {
-      setError('Please enter a ticker symbol');
+      setError("Please enter a ticker symbol.");
       return;
     }
 
     setIsLoading(true);
-    setError(null);
-    setResult(null);
-
     try {
       const response = await fetch(`/api/analyze/${strategyType}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ticker: ticker.toUpperCase(),
+          ticker: ticker.trim().toUpperCase(),
           min_dte: minDte,
           max_dte: maxDte,
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Server error: ${response.status}`);
       }
 
       const data = await response.json();
       setResult(data.result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred during analysis');
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An unknown error occurred during analysis."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -58,204 +74,192 @@ export default function Home() {
     setError(null);
   };
 
+  // Helper to parse summary into key-value pairs for display
+  const parseSummary = (summary: string) => {
+    const lines = summary.split("\n").filter(Boolean);
+    return lines
+      .map((line) => {
+        const [label, ...rest] = line.split(":");
+        if (!rest.length) return null;
+        return { label: label.trim(), value: rest.join(":").trim() };
+      })
+      .filter(Boolean) as { label: string; value: string }[];
+  };
+
   return (
-    <>
-      <Head>
-        <title>VegaEdge - Option Strategy Analyzer</title>
-        <meta name="description" content="Professional options analysis and strategy recommendations" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-        {/* Header */}
-        <header className="bg-black/20 backdrop-blur-sm border-b border-blue-500/20">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-green-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">VE</span>
-                </div>
-                <h1 className="text-xl font-bold text-white">VegaEdge</h1>
-                <span className="text-blue-300 text-sm">Option Strategy Analyzer</span>
-              </div>
-              <div className="text-blue-300 text-sm">
-                Professional Options Analysis
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Input Form */}
-          <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-blue-500/20 p-6 mb-8">
-            <h2 className="text-2xl font-bold text-white mb-6">Analysis Parameters</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Ticker Input */}
-              <div>
-                <label className="block text-blue-300 text-sm font-medium mb-2">
+    <div
+      className="min-h-screen w-full bg-zinc-900 text-slate-400 font-sans"
+      style={{ fontFamily: "var(--font-sans, Inter, sans-serif)" }}
+    >
+      <div className="max-w-6xl mx-auto py-12 px-4 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Analysis Parameters */}
+        <Card className="bg-zinc-950 border-zinc-800 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-slate-50 text-2xl">
+              Analysis Parameters
+            </CardTitle>
+            <CardDescription>
+              Enter your criteria to find the best risk reversal trades.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form
+              className="space-y-6"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleAnalyze();
+              }}
+            >
+              <div className="space-y-2">
+                <Label htmlFor="ticker" className="text-slate-200">
                   Ticker Symbol
-                </label>
-                <input
-                  type="text"
+                </Label>
+                <Input
+                  id="ticker"
                   value={ticker}
                   onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                  placeholder="e.g., AAPL"
-                  className="w-full px-4 py-3 bg-slate-800/50 border border-blue-500/30 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g. AAPL"
+                  className="bg-zinc-900 border-zinc-700 text-slate-50"
+                  autoComplete="off"
                 />
               </div>
-
-              {/* Min DTE */}
-              <div>
-                <label className="block text-blue-300 text-sm font-medium mb-2">
-                  Min Days to Expiry
-                </label>
-                <input
-                  type="number"
-                  value={minDte}
-                  onChange={(e) => setMinDte(parseInt(e.target.value) || 0)}
-                  min="1"
-                  className="w-full px-4 py-3 bg-slate-800/50 border border-blue-500/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+              <div className="flex gap-4">
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="minDte" className="text-slate-200">
+                    Min Days to Expiry
+                  </Label>
+                  <Input
+                    id="minDte"
+                    type="number"
+                    min={1}
+                    value={minDte}
+                    onChange={(e) => setMinDte(Number(e.target.value))}
+                    className="bg-zinc-900 border-zinc-700 text-slate-50"
+                  />
+                </div>
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="maxDte" className="text-slate-200">
+                    Max Days to Expiry
+                  </Label>
+                  <Input
+                    id="maxDte"
+                    type="number"
+                    min={1}
+                    value={maxDte}
+                    onChange={(e) => setMaxDte(Number(e.target.value))}
+                    className="bg-zinc-900 border-zinc-700 text-slate-50"
+                  />
+                </div>
               </div>
-
-              {/* Max DTE */}
-              <div>
-                <label className="block text-blue-300 text-sm font-medium mb-2">
-                  Max Days to Expiry
-                </label>
-                <input
-                  type="number"
-                  value={maxDte}
-                  onChange={(e) => setMaxDte(parseInt(e.target.value) || 0)}
-                  min="1"
-                  className="w-full px-4 py-3 bg-slate-800/50 border border-blue-500/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              {/* Strategy Type */}
-              <div>
-                <label className="block text-blue-300 text-sm font-medium mb-2">
+              <div className="space-y-2">
+                <Label htmlFor="strategyType" className="text-slate-200">
                   Strategy Type
-                </label>
-                <select
+                </Label>
+                <Select
                   value={strategyType}
-                  onChange={(e) => setStrategyType(e.target.value as 'bullish' | 'bearish')}
-                  className="w-full px-4 py-3 bg-slate-800/50 border border-blue-500/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onValueChange={(v) => setStrategyType(v as StrategyType)}
                 >
-                  <option value="bullish">Bullish</option>
-                  <option value="bearish">Bearish</option>
-                </select>
+                  <SelectTrigger className="bg-zinc-900 border-zinc-700 text-slate-50">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bullish">Bullish</SelectItem>
+                    <SelectItem value="bearish">Bearish</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex space-x-4 mt-6">
-              <button
-                onClick={handleAnalyze}
-                disabled={isLoading}
-                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all duration-200 flex items-center space-x-2"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>Analyzing...</span>
-                  </>
-                ) : (
-                  <span>Run Analysis</span>
-                )}
-              </button>
-              
-              <button
-                onClick={clearResults}
-                className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-colors duration-200"
-              >
-                Clear Results
-              </button>
-            </div>
-          </div>
-
-          {/* Error Display */}
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-6">
-              <div className="flex items-center space-x-2">
-                <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs">!</span>
-                </div>
-                <span className="text-red-300">{error}</span>
+              <div className="flex gap-4 pt-2">
+                <Button
+                  type="submit"
+                  variant="default"
+                  className="bg-lime-400 text-zinc-900 font-bold hover:bg-lime-300 transition"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Analyzing..." : "Run Analysis"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={clearResults}
+                  className="text-slate-400 border border-zinc-700"
+                  disabled={isLoading}
+                >
+                  Clear Results
+                </Button>
               </div>
-            </div>
-          )}
+              {error && (
+                <div className="text-red-400 font-medium pt-2">{error}</div>
+              )}
+            </form>
+          </CardContent>
+        </Card>
 
-          {/* Results Display */}
-          {result && (
-            <div className="space-y-6">
-              {/* Summary */}
-              {result.summary && (
-                <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-blue-500/20 p-6">
-                  <h3 className="text-xl font-bold text-white mb-4">Top Recommended Trade</h3>
-                  <div className="bg-slate-800/50 rounded-lg p-4">
-                    <pre className="text-green-300 whitespace-pre-wrap font-mono text-sm">{result.summary}</pre>
-                  </div>
+        {/* Results */}
+        <div className="flex flex-col gap-8">
+          {/* Top Recommended Trade */}
+          <Card className="bg-zinc-950 border-zinc-800 shadow-lg flex-1 min-h-[220px]">
+            <CardHeader>
+              <CardTitle className="text-slate-50 text-xl">
+                Top Recommended Trade
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-32 w-full rounded-lg bg-zinc-800" />
+              ) : !result ? (
+                <div className="text-slate-400 italic">
+                  {error
+                    ? "No results to display."
+                    : "Enter parameters and run analysis to see results here."}
+                </div>
+              ) : result.summary && result.summary.includes(":") ? (
+                <Table>
+                  <TableBody>
+                    {parseSummary(result.summary).map((row) => (
+                      <TableRow key={row.label}>
+                        <TableCell className="font-semibold text-slate-200">
+                          {row.label}
+                        </TableCell>
+                        <TableCell className="text-lime-400 font-mono">
+                          {row.value}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-slate-400 italic">
+                  No trades found for the specified criteria.
                 </div>
               )}
+            </CardContent>
+          </Card>
 
-              {/* Risk Analysis */}
-              {result.risk && (
-                <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-blue-500/20 p-6">
-                  <h3 className="text-xl font-bold text-white mb-4">Strategy Overview & Risk</h3>
-                  <div className="bg-slate-800/50 rounded-lg p-4">
-                    <pre className="text-blue-300 whitespace-pre-wrap font-mono text-sm">{result.risk}</pre>
-                  </div>
+          {/* Strategy Overview & Risk */}
+          <Card className="bg-zinc-950 border-zinc-800 shadow-lg flex-1 min-h-[180px]">
+            <CardHeader>
+              <CardTitle className="text-slate-50 text-xl">
+                Strategy Overview & Risk
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-24 w-full rounded-lg bg-zinc-800" />
+              ) : result && result.risk ? (
+                <div className="whitespace-pre-line text-slate-300">
+                  {result.risk}
+                </div>
+              ) : (
+                <div className="text-slate-400 italic">
+                  {error
+                    ? "No risk analysis to display."
+                    : "Run analysis to see strategy details and risk profile."}
                 </div>
               )}
-
-              {/* Pricing Comparison */}
-              {result.pricing_comparison && (
-                <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-blue-500/20 p-6">
-                  <h3 className="text-xl font-bold text-white mb-4">Pricing Comparison</h3>
-                  <div className="bg-slate-800/50 rounded-lg p-4">
-                    <pre className="text-yellow-300 whitespace-pre-wrap font-mono text-sm">{result.pricing_comparison}</pre>
-                  </div>
-                </div>
-              )}
-
-              {/* Top 5 Combinations */}
-              {result.top_5 && result.top_5.length > 0 && (
-                <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-blue-500/20 p-6">
-                  <h3 className="text-xl font-bold text-white mb-4">Top 5 Combinations</h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full bg-slate-800/50 rounded-lg">
-                      <thead>
-                        <tr className="border-b border-slate-700">
-                          <th className="px-4 py-3 text-left text-blue-300 font-medium">Rank</th>
-                          <th className="px-4 py-3 text-left text-blue-300 font-medium">Expiration</th>
-                          <th className="px-4 py-3 text-left text-blue-300 font-medium">Strikes</th>
-                          <th className="px-4 py-3 text-left text-blue-300 font-medium">Net Cost</th>
-                          <th className="px-4 py-3 text-left text-blue-300 font-medium">Net Vega</th>
-                          <th className="px-4 py-3 text-left text-blue-300 font-medium">Efficiency</th>
-                          <th className="px-4 py-3 text-left text-blue-300 font-medium">Score</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {result.top_5.map((row, index) => (
-                          <tr key={index} className="border-b border-slate-700/50 last:border-b-0">
-                            {row.map((cell, cellIndex) => (
-                              <td key={cellIndex} className="px-4 py-3 text-white font-mono text-sm">
-                                {cell}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </main>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </>
+    </div>
   );
 }
