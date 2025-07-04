@@ -19,20 +19,19 @@ type ApiResponse = {
   summary: string;
   top_5: string[][];
   chartData: ChartPoint[];
+  error?: string;
 };
 
-async function fetchOptions(symbol: string): Promise<{ expiry: string; options: Option[] }> {
-  // Get available expiration dates
+async function fetchOptions(symbol: string): Promise<{ expiry: string; options: Option[] } | null> {
   const expRes = await fetch(`${FINNHUB_BASE}/stock/option-chain?symbol=${symbol}&token=${FINNHUB_API_KEY}`);
-  if (!expRes.ok) throw new Error('Failed to fetch option expirations');
+  if (!expRes.ok) return null;
   const expData = await expRes.json();
-  if (!expData.data || !expData.data.length) throw new Error('No options data found');
-  // Use the first expiration date for demo
+  if (!expData.data || !expData.data.length) return null;
   const expiry = expData.data[0].expirationDate;
-  // Get option chain for that expiry
   const chainRes = await fetch(`${FINNHUB_BASE}/stock/option-chain?symbol=${symbol}&expiration=${expiry}&token=${FINNHUB_API_KEY}`);
-  if (!chainRes.ok) throw new Error('Failed to fetch option chain');
+  if (!chainRes.ok) return null;
   const chainData = await chainRes.json();
+  if (!chainData.data || !chainData.data.length) return null;
   return { expiry, options: chainData.data as Option[] };
 }
 
@@ -48,13 +47,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       return;
     }
     const symbol = ticker.toUpperCase();
-    const { expiry, options } = await fetchOptions(symbol);
-    // Filter and sort options by IV
+    const result = await fetchOptions(symbol);
+    if (!result) {
+      res.status(200).json({ summary: '', top_5: [], chartData: [], error: 'No options data found for this symbol.' });
+      return;
+    }
+    const { expiry, options } = result;
     let filtered = options.filter((opt) => opt.type === (strategy === 'bullish' ? 'CALL' : 'PUT'));
     filtered = filtered.filter((opt) => opt.impliedVolatility && opt.strike && opt.lastPrice);
     filtered.sort((a, b) => b.impliedVolatility - a.impliedVolatility);
     const top5 = filtered.slice(0, 5);
-    // Prepare top_5 table
+    if (top5.length === 0) {
+      res.status(200).json({ summary: '', top_5: [], chartData: [], error: 'No suitable options found for this strategy.' });
+      return;
+    }
     const top_5 = top5.map((opt) => [
       opt.symbol,
       String(opt.strike),
@@ -64,7 +70,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       String(opt.volume),
       expiry
     ]);
-    // Prepare chart data (dummy P&L curve)
     const strikes = top5.map((opt) => Number(opt.strike));
     const chartData: ChartPoint[] = [];
     for (let i = 0; i < 20; ++i) {

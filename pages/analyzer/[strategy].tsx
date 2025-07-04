@@ -13,6 +13,7 @@ type AnalysisResult = {
   summary: string;
   top_5: string[][];
   chartData: { price: number; profit: number }[];
+  error?: string;
 };
 
 export default function AnalyzerPage() {
@@ -104,7 +105,10 @@ export default function AnalyzerPage() {
             </div>
           )}
           {error && <ErrorAlert message={error} />}
-          {result && (
+          {result && result.error && (
+            <ErrorAlert message={result.error} />
+          )}
+          {result && !result.error && (
             <div className="flex flex-col gap-6 mt-4">
               <ResultsSummary summary={result.summary} />
               <ResultsTable rows={result.top_5} />
