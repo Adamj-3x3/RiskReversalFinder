@@ -7,12 +7,7 @@ interface ChartPoint {
   profit: number;
 }
 
-interface ProfitLossChartProps {
-  data: ChartPoint[];
-  breakeven: number[];
-}
-
-export default function ProfitLossChart({ data, breakeven }: ProfitLossChartProps) {
+export default function ProfitLossChart({ data }: { data: { price: number; profit: number }[] }) {
   if (!data?.length) return null;
   return (
     <Card>
@@ -28,9 +23,6 @@ export default function ProfitLossChart({ data, breakeven }: ProfitLossChartProp
               <YAxis stroke="#3A86FF" tick={{ fill: '#3A86FF', fontSize: 12, fontFamily: 'monospace' }} />
               <Tooltip contentStyle={{ background: '#0A192F', border: '1px solid #3A86FF', color: '#64FFDA', fontFamily: 'monospace' }} />
               <Line type="monotone" dataKey="profit" stroke="#64FFDA" strokeWidth={3} dot={false} isAnimationActive={true} />
-              {breakeven.map((b, i) => (
-                <ReferenceLine key={i} x={b} stroke="#3A86FF" strokeDasharray="4 2" label={{ value: 'Breakeven', fill: '#3A86FF', fontSize: 10, position: 'top' }} />
-              ))}
               <ReferenceLine y={0} stroke="#3A86FF" strokeDasharray="2 2" />
             </LineChart>
           </ResponsiveContainer>

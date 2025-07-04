@@ -8,6 +8,12 @@ import ResultsTable from "@/components/ResultsTable";
 import ProfitLossChart from "@/components/ProfitLossChart";
 import ErrorAlert from "@/components/ErrorAlert";
 
+type AnalysisResult = {
+  summary: string;
+  top_5: string[][];
+  chartData: { price: number; profit: number }[];
+};
+
 export default function AnalyzerPage() {
   const router = useRouter();
   const { strategy } = router.query as { strategy: "bullish" | "bearish" };
@@ -17,7 +23,7 @@ export default function AnalyzerPage() {
   const [maxDte, setMaxDte] = useState(180);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
 
   const handleAnalyze = async () => {
     setIsLoading(true);
@@ -37,8 +43,9 @@ export default function AnalyzerPage() {
       const data = await res.json();
       if (data.error) setError(data.error);
       else setResult(data);
-    } catch (e: any) {
-      setError(e.message || "Network error");
+    } catch (e: unknown) {
+      if (e instanceof Error) setError(e.message);
+      else setError("Network error");
     } finally {
       setIsLoading(false);
     }
