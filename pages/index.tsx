@@ -157,8 +157,6 @@ export default function Home() {
               <ProfitLossChart
                 data={result.chartData}
                 breakeven={result.breakeven || []}
-                maxProfit={result.maxProfit || 0}
-                maxLoss={result.maxLoss || 0}
               />
             ) : (
               <div className="h-64 flex items-center justify-center text-cyan-400/60 font-mono text-lg bg-zinc-950/60 rounded-xl border border-cyan-700/30">
