@@ -1,8 +1,8 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* config options here */
+// CORRECT, SIMPLE CONFIGURATION
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   reactStrictMode: true,
+  // ... any other settings you specifically need, but no assetPrefix or basePath
 };
 
-export default nextConfig;
+module.exports = nextConfig;
