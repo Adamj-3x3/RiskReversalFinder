@@ -2,11 +2,6 @@ import React from "react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, ReferenceLine, CartesianGrid } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface ChartPoint {
-  price: number;
-  profit: number;
-}
-
 export default function ProfitLossChart({ data }: { data: { price: number; profit: number }[] }) {
   if (!data?.length) return null;
   return (
