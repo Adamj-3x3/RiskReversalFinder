@@ -2,9 +2,11 @@ import React, { useState } from "react";
 import Head from "next/head";
 import { CommandPanel } from "@/components/CommandPanel";
 import { MetricWidget } from "@/components/MetricWidget";
-import { ProfitLossChart } from "@/components/ProfitLossChart";
+import ProfitLossChart from "@/components/ProfitLossChart";
 import { TradeDetailsTable } from "@/components/TradeDetailsTable";
 import { LoadingScanner } from "@/components/LoadingScanner";
+import Link from "next/link";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type StrategyType = "bullish" | "bearish";
 
@@ -177,6 +179,32 @@ export default function Home() {
           </div>
         </main>
       </div>
+      <main className="min-h-screen flex flex-col items-center justify-center bg-zinc-950 text-white px-4">
+        <h1 className="text-3xl font-bold mb-4">VegaEdge</h1>
+        <p className="mb-8 text-center text-zinc-300">Professional Options Analysis. Mobile-first. Powered by Python + Next.js.</p>
+        <div className="w-full max-w-md flex flex-col gap-6">
+          <Link href="/analyzer/bullish">
+            <Card className="hover:scale-105 transition cursor-pointer">
+              <CardHeader>
+                <CardTitle>Bullish Analysis</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>Find the best bullish risk reversals.</p>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/analyzer/bearish">
+            <Card className="hover:scale-105 transition cursor-pointer">
+              <CardHeader>
+                <CardTitle>Bearish Analysis</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>Find the best bearish risk reversals.</p>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+      </main>
     </div>
   );
 }
